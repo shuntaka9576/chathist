@@ -1,0 +1,53 @@
+version: 2
+
+before:
+  hooks:
+    - rustup default stable
+    - cargo install --locked cargo-zigbuild
+
+builds:
+  - id: "chathist"
+    builder: rust
+    binary: chathist
+    targets:
+      - x86_64-apple-darwin
+      - aarch64-apple-darwin
+      - x86_64-unknown-linux-gnu
+    tool: "cargo"
+    command: zigbuild
+    flags:
+      - --release
+    skip: false
+
+archives:
+  - formats: ["tar.gz"]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - repository:
+      owner: shuntaka9576
+      name: homebrew-tap
+      token: "{{ .Env.GH_PAT }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    directory: Formula
+    license: MIT
+    name: chathist
+    url_template: "https://github.com/shuntaka9576/chathist/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    homepage: "https://shuntaka.dev/"
+    description: "A lightweight CLI tool to view and export your AI coding agent's chat history."
+    test: |
+      system "#{bin}/chathist --help"
+    install: |
+      bin.install "chathist"

@@ -1,0 +1,55 @@
+[env]
+CHATHIST_CONFIG_FILE_PATH = "examples/config/config.lua"
+
+[tasks.build]
+description = "Build the project"
+command = "cargo"
+args = ["build"]
+
+[tasks.test]
+description = "Run all tests"
+command = "cargo"
+args = ["test"]
+
+[tasks.test-ci]
+description = "Run tests for CI with nextest"
+command = "cargo"
+args = ["nextest", "run"]
+
+[tasks.fmt]
+description = "Run rustfmt"
+command = "cargo"
+args = ["fmt"]
+
+[tasks.clippy]
+description = "Run clippy linter"
+command = "cargo"
+args = ["clippy"]
+
+[tasks.clippy-ci]
+description = "Run clippy for CI (stricter)"
+command = "cargo"
+args = ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"]
+
+[tasks.check]
+description = "Run all checks (fmt, clippy, test, build)"
+dependencies = ["fmt", "clippy", "test", "build"]
+
+[tasks.run]
+description = "Run chathist with arguments"
+command = "cargo"
+args = ["run", "--", "${@}"]
+
+[tasks.pick]
+description = "Interactive pick with fzf"
+script = '''
+while true; do
+  selection=$(cargo run --quiet -- list | fzf --multi --with-nth=2.. \
+    --preview 'CHATHIST_CONFIG_FILE_PATH=examples/config/config.lua cargo run --quiet -- pick -t standard {1} --stdout' \
+    --preview-window 'right:45%:wrap' | cut -f1)
+
+  [ -z "$selection" ] && break
+
+  echo "$selection" | cargo run --quiet -- pick -t collapsible
+done
+'''

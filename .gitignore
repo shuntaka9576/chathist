@@ -1,0 +1,5 @@
+target
+examples/config/*.md
+-*
+dist
+.zig-cache

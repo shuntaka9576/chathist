@@ -1,0 +1,33 @@
+<details>
+<summary><strong>AI Chat Logs</strong> ({{ sessions | length }})</summary>
+
+{% for session in sessions %}
+<details>
+<summary><code>{{ session.id }}</code></summary>
+
+{% if session.plan %}
+<details>
+<summary><strong>Plan</strong></summary>
+
+````
+{{ session.plan | replace("````", "` ` ` `") }}
+````
+
+</details>
+
+{% endif %}
+{% for message in session.messages %}
+<details>
+<summary><strong>{{ message.role | title }}</strong></summary>
+
+````
+{{ message.content | replace("````", "` ` ` `") }}
+````
+
+</details>
+
+{% endfor %}
+</details>
+
+{% endfor %}
+</details>
