@@ -1,4 +1,3 @@
--- Built-in templates
 local chathist = require("chathist")
 local experimental = require("chathist.experimental")
 

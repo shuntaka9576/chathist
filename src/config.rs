@@ -28,6 +28,8 @@ pub struct PickConfig {
     pub templates: HashMap<String, String>,
     /// Default template name to use when -t is not specified
     pub default_template: String,
+    /// Template names to hide from --list-templates output
+    pub list_hidden: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +51,7 @@ impl Default for Config {
                 pick: PickConfig {
                     templates: pick_templates,
                     default_template: "standard".to_string(),
+                    list_hidden: Vec::new(),
                 },
                 list: ListConfig {
                     template: templates::list::DEFAULT.to_string(),
@@ -199,9 +202,21 @@ fn parse_pick_config(commands_tbl: &Table, default: &PickConfig) -> anyhow::Resu
                                 .unwrap_or_else(|| "standard".to_string())
                         });
 
+                    // Parse list_hidden array
+                    let list_hidden: Vec<String> =
+                        if let Ok(hidden_tbl) = template_tbl.get::<Table>("list_hidden") {
+                            hidden_tbl
+                                .sequence_values::<String>()
+                                .filter_map(|r| r.ok())
+                                .collect()
+                        } else {
+                            Vec::new()
+                        };
+
                     Ok(PickConfig {
                         templates,
                         default_template,
+                        list_hidden,
                     })
                 }
                 // No template specified, use default
@@ -291,5 +306,55 @@ return {}
         assert_eq!(config, Config::default());
 
         Ok(())
+    }
+
+    #[test]
+    fn test_load_config_with_list_hidden() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let config_path = temp_dir.path().join("config.lua");
+
+        let config_code = r#"
+local chathist = require("chathist")
+local experimental = require("chathist.experimental")
+
+return {
+    commands = {
+        pick = {
+            template = {
+                preset = {
+                    standard = chathist.template.pick.standard,
+                    collapsible = experimental.template.pick.collapsible,
+                    internal = "internal template",
+                },
+                default = "standard",
+                list_hidden = { "internal", "collapsible" },
+            },
+        },
+    },
+}
+"#;
+        fs::write(&config_path, config_code)?;
+
+        let config = load_config(&config_path)?;
+
+        assert_eq!(config.commands.pick.list_hidden.len(), 2);
+        assert!(config
+            .commands
+            .pick
+            .list_hidden
+            .contains(&"internal".to_string()));
+        assert!(config
+            .commands
+            .pick
+            .list_hidden
+            .contains(&"collapsible".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_config_has_empty_list_hidden() {
+        let config = Config::default();
+        assert!(config.commands.pick.list_hidden.is_empty());
     }
 }

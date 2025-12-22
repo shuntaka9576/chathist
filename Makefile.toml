@@ -53,3 +53,21 @@ while true; do
   echo "$selection" | cargo run --quiet -- pick -t collapsible
 done
 '''
+
+[tasks.pick-with-template]
+description = "Interactive pick with template selection via fzf"
+script = '''
+while true; do
+  selection=$(cargo run --quiet -- list | fzf --multi --with-nth=2.. \
+    --preview 'CHATHIST_CONFIG_FILE_PATH=examples/config/config.lua cargo run --quiet -- pick -t standard {1} --stdout' \
+    --preview-window 'right:45%:wrap' | cut -f1)
+
+  [ -z "$selection" ] && break
+
+  # Select template after session selection
+  template=$(cargo run --quiet -- pick --list-templates | fzf --prompt="Select template: ")
+  [ -z "$template" ] && continue
+
+  echo "$selection" | cargo run --quiet -- pick -t "$template"
+done
+'''
