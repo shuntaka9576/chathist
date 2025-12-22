@@ -44,6 +44,9 @@ enum Commands {
         /// Template preset name to use (e.g., "standard", "collapsible")
         #[arg(short = 't', long = "template")]
         template: Option<String>,
+        /// List available template names
+        #[arg(long)]
+        list_templates: bool,
     },
     /// Open config file in editor
     Config,
@@ -89,9 +92,14 @@ fn main() {
             session_id,
             stdout,
             template,
+            list_templates,
         } => {
-            let agent = ClaudeAgent::new();
-            commands::run_pick(&agent, session_id, stdout, template, &app_config);
+            if list_templates {
+                commands::run_list_templates(&app_config);
+            } else {
+                let agent = ClaudeAgent::new();
+                commands::run_pick(&agent, session_id, stdout, template, &app_config);
+            }
         }
         Commands::Config => {
             commands::run_config(&app_config);

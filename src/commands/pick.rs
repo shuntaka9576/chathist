@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read};
@@ -7,6 +8,18 @@ use std::process::Command;
 use crate::agent::Agent;
 use crate::config::Config;
 use crate::shared::{git, path as shared_path};
+
+/// List available template names (excluding hidden ones)
+pub fn run_list_templates(config: &Config) {
+    let pick_config = &config.commands.pick;
+    let hidden: HashSet<&String> = pick_config.list_hidden.iter().collect();
+
+    for name in pick_config.templates.keys() {
+        if !hidden.contains(name) {
+            println!("{name}");
+        }
+    }
+}
 
 pub fn run_pick(
     agent: &impl Agent,

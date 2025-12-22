@@ -1,6 +1,6 @@
 # chathist
 
-A lightweight CLI tool to view and export your AI coding agent's chat history. (Currently supporting Claude Code.)
+A lightweight CLI tool to view and export your AI coding agent's chat history—currently optimized for Claude Code.
 
 Built for speed and flexibility, chathist hooks into fzf / fzf-tmux to let you breeze through past sessions with instant previews. It’s fully customizable via Lua configuration and Jinja2 templates, so you can tailor the output to your exact workflow.
 
@@ -41,10 +41,71 @@ chp() {
 
     [ -z "$selection" ] && break
 
+    template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
+    [ -z "$template" ] && continue
+
+    echo "$selection" | chathist pick -t "$template"
+  done
+}
+```
+
+Template-first selection
+```diff
++ template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
++ [ -z "$template" ] && return
+  while true; do
+    ...
+-   template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
+-   [ -z "$template" ] && continue
+```
+<details>
+<summary>full version</summary>
+
+```bash
+chp() {
+  while true; do
+    selection=$(chathist list | fzf --multi --with-nth=2.. \
+      --preview 'chathist pick {1} --stdout' \
+      --preview-window 'right:45%:wrap' | cut -f1)
+
+    [ -z "$selection" ] && break
+
     echo "$selection" | chathist pick
   done
 }
 ```
+
+</details>
+
+Skip template selection
+```diff
+-   template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
+-   [ -z "$template" ] && continue
+-   echo "$selection" | chathist pick -t "$template"
++   echo "$selection" | chathist pick
+```
+
+<details>
+<summary>full version</summary>
+
+```bash
+chp() {
+  template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
+  [ -z "$template" ] && return
+
+  while true; do
+    selection=$(chathist list | fzf --multi --with-nth=2.. \
+      --preview "chathist pick -t $template {1} --stdout" \
+      --preview-window 'right:45%:wrap' | cut -f1)
+
+    [ -z "$selection" ] && break
+
+    echo "$selection" | chathist pick -t "$template"
+  done
+}
+```
+
+</details>
 
 Alternatively, you can set up a keybinding to invoke chathist directly with `Ctrl+H`.
 
@@ -57,7 +118,10 @@ function chathist-widget() {
 
     [ -z "$selection" ] && break
 
-    echo "$selection" | chathist pick
+    local template=$(chathist pick --list-templates | fzf-tmux --prompt="Select template: ")
+    [ -z "$template" ] && continue
+
+    echo "$selection" | chathist pick -t "$template"
   done
 
   zle reset-prompt
@@ -73,6 +137,7 @@ bindkey "^h" chathist-widget
 * `chathist pick <session_id>`: Opens the specified session in the editor.
 * `chathist pick --stdout <session_id>`: Dump content to terminal (ideal for `fzf` previews).
 * `chathist pick --template <name> <session_id>`: Use a predefined template.
+* `chathist pick --list-templates`: List available template names (for fzf integration).
 
 #### Example: Copy to Clipboard
 
@@ -113,6 +178,7 @@ return {
           collapsible = experimental.template.pick.collapsible,
         },
         default = "standard",
+        -- list_hidden = { "collapsible" },  -- Hide from --list-templates output
       },
     },
   },
