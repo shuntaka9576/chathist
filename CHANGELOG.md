@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.3.0](https://github.com/shuntaka9576/chathist/compare/v0.2.0...v0.3.0) - 2026-03-03
+- feat: add hidden search text column to list output for fzf body search by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/5
+
 ## [v0.2.0](https://github.com/shuntaka9576/chathist/compare/v0.1.0...v0.2.0) - 2025-12-22
 - feat: add --list-templates option for interactive template selection by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/3
 
