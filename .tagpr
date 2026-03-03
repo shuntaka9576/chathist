@@ -3,3 +3,4 @@
 	releaseBranch = main
 	versionFile = Cargo.toml
 	release = draft
+	postVersionCommand = cargo update --workspace
