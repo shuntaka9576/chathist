@@ -96,6 +96,7 @@ pub fn list(log_dir: &str) -> Vec<DisplayEntry> {
             timestamp: session.timestamp.clone(),
             message_count: session.message_count,
             git_branch: session.git_branch.clone(),
+            search_text: session.search_text.clone(),
         });
     }
 

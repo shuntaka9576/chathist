@@ -48,7 +48,10 @@ pub struct SessionData {
     pub git_branch: String,
     pub timestamp: String,
     pub all_uuids: HashSet<String>,
+    pub search_text: String,
 }
+
+const SEARCH_TEXT_LIMIT_BYTES: usize = 8 * 1024;
 
 pub fn format_time(timestamp: &str) -> String {
     let Ok(dt) = DateTime::parse_from_rfc3339(timestamp) else {
@@ -136,6 +139,45 @@ pub fn is_system_message(text: &str) -> bool {
         || text.starts_with("Warmup")
 }
 
+pub fn normalize_search_text(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn truncate_to_bytes(text: &str, max_bytes: usize) -> &str {
+    if text.len() <= max_bytes {
+        return text;
+    }
+
+    let mut end = 0;
+    for (idx, ch) in text.char_indices() {
+        let next = idx + ch.len_utf8();
+        if next > max_bytes {
+            break;
+        }
+        end = next;
+    }
+
+    &text[..end]
+}
+
+fn append_search_text(target: &mut String, text: &str) {
+    let normalized = normalize_search_text(text);
+    if normalized.is_empty() || target.len() >= SEARCH_TEXT_LIMIT_BYTES {
+        return;
+    }
+
+    let mut remaining = SEARCH_TEXT_LIMIT_BYTES - target.len();
+    if !target.is_empty() {
+        if remaining <= 1 {
+            return;
+        }
+        target.push(' ');
+        remaining -= 1;
+    }
+
+    target.push_str(truncate_to_bytes(&normalized, remaining));
+}
+
 pub fn collect_summaries(path: &Path) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let Ok(file) = File::open(path) else {
@@ -186,6 +228,7 @@ pub fn process_session_file(
     let mut local_git_branch = String::new();
     let mut local_timestamp = String::new();
     let mut local_uuids: HashSet<String> = HashSet::new();
+    let mut local_search_text = String::new();
 
     for line in reader.lines().map_while(Result::ok) {
         if line.trim().is_empty() {
@@ -232,6 +275,17 @@ pub fn process_session_file(
                 }
             }
         }
+
+        if let Some(msg) = &entry.message {
+            if matches!(msg.role.as_deref(), Some("user" | "assistant")) {
+                if let Some(content) = &msg.content {
+                    let text = extract_text_content(content);
+                    if !text.is_empty() && !is_system_message(&text) {
+                        append_search_text(&mut local_search_text, &text);
+                    }
+                }
+            }
+        }
     }
 
     let session_id = if !local_session_id.is_empty() {
@@ -256,11 +310,13 @@ pub fn process_session_file(
         }
         session.message_count += local_message_count;
         session.all_uuids.extend(local_uuids);
+        append_search_text(&mut session.search_text, &local_search_text);
         return;
     }
 
     session.message_count += local_message_count;
     session.all_uuids.extend(local_uuids);
+    append_search_text(&mut session.search_text, &local_search_text);
 
     if session.first_message.is_empty() && !local_first_message.is_empty() {
         session.first_message = local_first_message;
@@ -270,5 +326,104 @@ pub fn process_session_file(
     if !local_timestamp.is_empty() && local_timestamp > session.timestamp {
         session.git_branch = local_git_branch;
         session.timestamp = local_timestamp;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn normalize_search_text_collapses_whitespace() {
+        assert_eq!(normalize_search_text("foo\tbar\n baz"), "foo bar baz");
+    }
+
+    #[test]
+    fn append_search_text_adds_separator_once() {
+        let mut target = String::from("hello");
+        append_search_text(&mut target, "world\nagain");
+
+        assert_eq!(target, "hello world again");
+    }
+
+    #[test]
+    fn append_search_text_respects_byte_limit() {
+        let mut target = "a".repeat(SEARCH_TEXT_LIMIT_BYTES - 2);
+        append_search_text(&mut target, "xyz");
+
+        assert_eq!(target.len(), SEARCH_TEXT_LIMIT_BYTES);
+        assert!(target.ends_with(" x"));
+    }
+
+    #[test]
+    fn process_session_file_collects_only_user_and_assistant_search_text() {
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(
+            file,
+            "{}",
+            serde_json::json!({
+                "type": "summary",
+                "summary": "summary text",
+                "leafUuid": "leaf-1"
+            })
+        )
+        .unwrap();
+        writeln!(
+            file,
+            "{}",
+            serde_json::json!({
+                "type": "user",
+                "sessionId": "session-1",
+                "timestamp": "2026-03-03T10:00:00Z",
+                "uuid": "u1",
+                "message": {
+                    "role": "user",
+                    "content": "first\tmessage"
+                }
+            })
+        )
+        .unwrap();
+        writeln!(
+            file,
+            "{}",
+            serde_json::json!({
+                "type": "assistant",
+                "sessionId": "session-1",
+                "timestamp": "2026-03-03T10:01:00Z",
+                "uuid": "u2",
+                "message": {
+                    "role": "assistant",
+                    "content": "reply\ntext"
+                }
+            })
+        )
+        .unwrap();
+        writeln!(
+            file,
+            "{}",
+            serde_json::json!({
+                "type": "assistant",
+                "sessionId": "session-1",
+                "timestamp": "2026-03-03T10:02:00Z",
+                "uuid": "u3",
+                "message": {
+                    "role": "assistant",
+                    "content": "Caveat: hidden"
+                }
+            })
+        )
+        .unwrap();
+
+        let mut sessions = HashMap::new();
+        let mut uuid_to_session = HashMap::new();
+        process_session_file(file.path(), &mut sessions, &mut uuid_to_session, false);
+
+        let session = sessions.get("session-1").unwrap();
+        assert_eq!(session.first_message, "first\tmessage");
+        assert_eq!(session.search_text, "first message reply text");
+        assert_eq!(session.timestamp, "2026-03-03T10:02:00Z");
     }
 }

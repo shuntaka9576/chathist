@@ -9,6 +9,7 @@ pub struct DisplayEntry {
     pub timestamp: String,     // ISO8601 for sorting
     pub message_count: usize,
     pub git_branch: String,
+    pub search_text: String,
 }
 
 pub struct PickResult {
