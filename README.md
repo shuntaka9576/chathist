@@ -25,6 +25,8 @@ cargo install --path .
 
 `chathist` is designed to pair perfectly with `fzf`.
 
+`chathist list` appends normalized conversation text as an extra tab-separated field, so you can search by message body with `fzf` while keeping the session ID in the first column for previews and selection.
+
 ### Zsh Integration
 
 Add this function to your .zshrc for a powerful session picker with live previews.
@@ -35,7 +37,9 @@ Add this function to your .zshrc for a powerful session picker with live preview
 ```bash
 chp() {
   while true; do
-    selection=$(chathist list | fzf --multi --with-nth=2.. \
+    selection=$(chathist list | fzf --multi \
+      --delimiter=$'\t' \
+      --with-nth=2.. \
       --preview 'chathist pick {1} --stdout' \
       --preview-window 'right:45%:wrap' | cut -f1)
 
@@ -64,7 +68,9 @@ Template-first selection
 ```bash
 chp() {
   while true; do
-    selection=$(chathist list | fzf --multi --with-nth=2.. \
+    selection=$(chathist list | fzf --multi \
+      --delimiter=$'\t' \
+      --with-nth=2.. \
       --preview 'chathist pick {1} --stdout' \
       --preview-window 'right:45%:wrap' | cut -f1)
 
@@ -94,7 +100,9 @@ chp() {
   [ -z "$template" ] && return
 
   while true; do
-    selection=$(chathist list | fzf --multi --with-nth=2.. \
+    selection=$(chathist list | fzf --multi \
+      --delimiter=$'\t' \
+      --with-nth=2.. \
       --preview "chathist pick -t $template {1} --stdout" \
       --preview-window 'right:45%:wrap' | cut -f1)
 
@@ -112,7 +120,9 @@ Alternatively, you can set up a keybinding to invoke chathist directly with `Ctr
 ```bash
 function chathist-widget() {
   while true; do
-    local selection=$(chathist list | fzf-tmux --multi --with-nth=2.. \
+    local selection=$(chathist list | fzf-tmux --multi \
+      --delimiter=$'\t' \
+      --with-nth=2.. \
       --preview 'chathist pick {1} --stdout' \
       --preview-window 'right:45%:wrap' | cut -f1)
 
@@ -146,7 +156,9 @@ bindkey "^h" chathist-widget
 chathist config
 
 # Select a session via fzf and copy to clipboard using the collapsible format.
-chathist list | fzf --multi --with-nth=2.. \
+chathist list | fzf --multi \
+  --delimiter=$'\t' \
+  --with-nth=2.. \
   --preview 'chathist pick -t standard {1} --stdout' \
   --preview-window 'right:45%:wrap' \
   | cut -f1 | chathist pick -t collapsible --stdout | pbcopy
