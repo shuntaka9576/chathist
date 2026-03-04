@@ -152,16 +152,13 @@ bindkey "^h" chathist-widget
 #### Example: Copy to Clipboard
 
 ```bash
-# Initialize the configuration and open it in your editor to register template presets (standard, collapsible).
-chathist config
-
-# Select a session via fzf and copy to clipboard using the collapsible format.
+# Select a session via fzf and copy to clipboard using the github format.
 chathist list | fzf --multi \
   --delimiter=$'\t' \
   --with-nth=2.. \
   --preview 'chathist pick -t standard {1} --stdout' \
   --preview-window 'right:45%:wrap' \
-  | cut -f1 | chathist pick -t collapsible --stdout | pbcopy
+  | cut -f1 | chathist pick -t github --stdout | pbcopy
 ```
 
 ## Configuration
@@ -175,7 +172,6 @@ The Lua table below outlines the internal defaults. To customize your setup, sim
 
 ```lua
 local chathist = require("chathist")
-local experimental = require("chathist.experimental")
 
 return {
   -- editor = "vim",  -- Uses $EDITOR or vim if not set
@@ -187,10 +183,12 @@ return {
       template = {
         preset = {
           standard = chathist.template.pick.standard,
-          collapsible = experimental.template.pick.collapsible,
+          github = chathist.template.pick.github,
+          ["github-compact"] = chathist.template.pick.github_compact,
+          slack = chathist.template.pick.slack,
         },
         default = "standard",
-        -- list_hidden = { "collapsible" },  -- Hide from --list-templates output
+        -- list_hidden = { "github-compact" },  -- Hide from --list-templates output
       },
     },
   },
@@ -236,12 +234,22 @@ Templates use Jinja2 syntax (via minijinja). Customize output by setting `comman
 | `sessions[].plan` | Plan content (if exists) |
 
 
+#### Available Filters
+
+| Filter | Description |
+|--------|-------------|
+| `title` | Capitalize first letter (e.g., `"user"` → `"User"`) |
+| `truncate(length=N)` | Truncate string with `...` suffix |
+| `replace` | String replacement |
+
 #### Template Examples
 
 | Template | Description |
 |----------|-------------|
-| [standard](src/config/templates/pick/standard.j2) | Default template |
-| [collapsible](src/config/templates/pick/collapsible.j2) | Using HTML `<details>` tag (experimental) |
+| [standard](src/config/templates/pick/standard.j2) | Plain Markdown |
+| [github](src/config/templates/pick/github.j2) | Markdown wrapped in `<details>` for GitHub |
+| [github-compact](src/config/templates/pick/github_compact.j2) | Fully nested `<details>` for GitHub |
+| [slack](src/config/templates/pick/slack.j2) | Slack mrkdwn format (paste directly into Slack) |
 
 Use Jinja2 conditionals to filter messages by role.
 

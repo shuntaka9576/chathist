@@ -1,0 +1,25 @@
+<details>
+<summary><strong>AI Chat Details</strong></summary>
+
+{% for session in sessions %}
+{% if sessions|length > 1 %}# Session: {{ session.id }}
+
+{% endif %}
+{% if session.plan %}
+<!-- Plan -->
+{{ session.plan }}
+<!-- /Plan -->
+
+{% endif %}
+{% for message in session.messages %}
+## {{ message.role | title }}
+
+{{ message.content }}
+
+{% endfor %}
+{% if not loop.last %}---
+
+{% endif %}
+{% endfor %}
+
+</details>

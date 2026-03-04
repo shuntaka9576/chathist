@@ -106,21 +106,22 @@ fn load_config(config_file_path: &Path) -> anyhow::Result<Config> {
     ))
     .exec()?;
 
-    // Register chathist module (stable)
+    // Register chathist module
     let chathist_mod = lua.create_table()?;
     let template_mod = lua.create_table()?;
     let pick_template_mod = lua.create_table()?;
 
     pick_template_mod.set("standard", templates::pick::STANDARD)?;
+    pick_template_mod.set("github", templates::pick::GITHUB)?;
+    pick_template_mod.set("github_compact", templates::pick::GITHUB_COMPACT)?;
+    pick_template_mod.set("slack", templates::pick::SLACK)?;
     template_mod.set("pick", pick_template_mod)?;
     chathist_mod.set("template", template_mod)?;
 
-    // Register chathist.experimental module
+    // Keep chathist.experimental module (empty for now, for forward compatibility)
     let experimental_mod = lua.create_table()?;
     let exp_template_mod = lua.create_table()?;
     let exp_pick_template_mod = lua.create_table()?;
-
-    exp_pick_template_mod.set("collapsible", templates::pick::COLLAPSIBLE)?;
     exp_template_mod.set("pick", exp_pick_template_mod)?;
     experimental_mod.set("template", exp_template_mod)?;
 
@@ -262,7 +263,6 @@ mod tests {
         // New format: preset table
         let config_code = r#"
 local chathist = require("chathist")
-local experimental = require("chathist.experimental")
 
 return {
     commands = {
@@ -270,9 +270,11 @@ return {
             template = {
                 preset = {
                     standard = chathist.template.pick.standard,
-                    collapsible = experimental.template.pick.collapsible,
+                    github = chathist.template.pick.github,
+                    ["github-compact"] = chathist.template.pick.github_compact,
+                    slack = chathist.template.pick.slack,
                 },
-                default = "collapsible",
+                default = "github",
             },
         },
         list = {},
@@ -284,8 +286,14 @@ return {
         let config = load_config(&config_path)?;
 
         assert!(config.commands.pick.templates.contains_key("standard"));
-        assert!(config.commands.pick.templates.contains_key("collapsible"));
-        assert_eq!(config.commands.pick.default_template, "collapsible");
+        assert!(config.commands.pick.templates.contains_key("github"));
+        assert!(config
+            .commands
+            .pick
+            .templates
+            .contains_key("github-compact"));
+        assert!(config.commands.pick.templates.contains_key("slack"));
+        assert_eq!(config.commands.pick.default_template, "github");
 
         Ok(())
     }
@@ -315,7 +323,6 @@ return {}
 
         let config_code = r#"
 local chathist = require("chathist")
-local experimental = require("chathist.experimental")
 
 return {
     commands = {
@@ -323,11 +330,11 @@ return {
             template = {
                 preset = {
                     standard = chathist.template.pick.standard,
-                    collapsible = experimental.template.pick.collapsible,
+                    github = chathist.template.pick.github,
                     internal = "internal template",
                 },
                 default = "standard",
-                list_hidden = { "internal", "collapsible" },
+                list_hidden = { "internal", "github" },
             },
         },
     },
@@ -347,7 +354,7 @@ return {
             .commands
             .pick
             .list_hidden
-            .contains(&"collapsible".to_string()));
+            .contains(&"github".to_string()));
 
         Ok(())
     }

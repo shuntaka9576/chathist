@@ -41,7 +41,7 @@ enum Commands {
         /// Output to stdout instead of opening in editor
         #[arg(long)]
         stdout: bool,
-        /// Template preset name to use (e.g., "standard", "collapsible")
+        /// Template preset name to use (e.g., "standard", "github", "slack")
         #[arg(short = 't', long = "template")]
         template: Option<String>,
         /// List available template names
