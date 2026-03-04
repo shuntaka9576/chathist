@@ -1,0 +1,20 @@
+{% for session in sessions %}
+{% if sessions|length > 1 %}*Session: {{ session.id }}*
+
+{% endif %}
+{% if session.plan %}*Plan*
+```
+{{ session.plan | replace("```", "` ` `") }}
+```
+
+{% endif %}
+{% for message in session.messages %}
+*{{ message.role | title }}*
+
+{{ message.content | replace("#### ", "") | replace("### ", "") | replace("## ", "") | replace("**", "*") }}
+
+{% endfor %}
+{% if not loop.last %}---
+
+{% endif %}
+{% endfor %}

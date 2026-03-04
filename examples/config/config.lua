@@ -1,5 +1,4 @@
 local chathist = require("chathist")
-local experimental = require("chathist.experimental")
 
 return {
   -- editor = "vim",  -- Uses $EDITOR or vim if not set
@@ -11,7 +10,9 @@ return {
       template = {
         preset = {
           standard = chathist.template.pick.standard,
-          collapsible = experimental.template.pick.collapsible,
+          github = chathist.template.pick.github,
+          ["github-compact"] = chathist.template.pick.github_compact,
+          slack = chathist.template.pick.slack,
         },
         default = "standard",
       },

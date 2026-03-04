@@ -103,4 +103,49 @@ mod tests {
         assert!(result.contains("# Session: session2"));
         assert!(result.contains("---"));
     }
+
+    #[test]
+    fn test_render_pick_slack_converts_markdown_to_mrkdwn() {
+        let sessions = vec![SessionContext {
+            id: "session1".to_string(),
+            messages: vec![MessageContext {
+                role: "user".to_string(),
+                content: "**bold** and ## heading".to_string(),
+            }],
+            plan: None,
+        }];
+
+        let result = render_pick(pick::SLACK, sessions).unwrap();
+        assert!(result.contains("*bold*"));
+        assert!(!result.contains("**bold**"));
+        assert!(!result.contains("## heading"));
+        assert!(result.contains("heading"));
+    }
+
+    #[test]
+    fn test_render_pick_slack_multiple_sessions() {
+        let sessions = vec![
+            SessionContext {
+                id: "session1".to_string(),
+                messages: vec![MessageContext {
+                    role: "user".to_string(),
+                    content: "First".to_string(),
+                }],
+                plan: None,
+            },
+            SessionContext {
+                id: "session2".to_string(),
+                messages: vec![MessageContext {
+                    role: "user".to_string(),
+                    content: "Second".to_string(),
+                }],
+                plan: None,
+            },
+        ];
+
+        let result = render_pick(pick::SLACK, sessions).unwrap();
+        assert!(result.contains("*Session: session1*"));
+        assert!(result.contains("*Session: session2*"));
+        assert!(result.contains("---"));
+    }
 }
