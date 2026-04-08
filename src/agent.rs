@@ -18,6 +18,8 @@ pub struct PickResult {
 
 pub trait Agent {
     fn get_log_dir(&self) -> Option<String>;
-    fn list(&self, log_dir: &str, config: &crate::config::Config) -> Vec<DisplayEntry>;
-    fn pick(&self, session_ids: &[String], log_dir: &str, template: &str) -> PickResult;
+    fn get_or_create_log_dir(&self) -> Option<String>;
+    fn get_cross_worktree_log_dirs(&self) -> Vec<String>;
+    fn list(&self, log_dirs: &[String], config: &crate::config::Config) -> Vec<DisplayEntry>;
+    fn pick(&self, session_ids: &[String], log_dirs: &[String], template: &str) -> PickResult;
 }

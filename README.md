@@ -29,110 +29,55 @@ cargo install --path .
 
 ### Zsh Integration
 
-Add this function to your .zshrc for a powerful session picker with live previews.
+Add this to your `.zshrc` to get a unified session picker on `Ctrl+H`.
 
-* Tab: Multi-select sessions
-* Shift + Up/Down (or Scroll): Scroll through the preview window
+**Session picker keybindings (inside fzf)**
 
-```bash
-chp() {
-  while true; do
-    selection=$(chathist list | fzf --multi \
-      --delimiter=$'\t' \
-      --with-nth=2.. \
-      --preview 'chathist pick {1} --stdout' \
-      --preview-window 'right:45%:wrap' | cut -f1)
+| Key | Action |
+|-----|--------|
+| `Tab` | Multi-select sessions |
+| `Shift+Up/Down` | Scroll preview |
+| `Ctrl+S` | Switch to cross-worktree mode |
+| `Ctrl+D` | Switch back to current project |
 
-    [ -z "$selection" ] && break
+After selecting sessions, you choose an action.
 
-    template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
-    [ -z "$template" ] && continue
-
-    echo "$selection" | chathist pick -t "$template"
-  done
-}
-```
-
-Template-first selection
-```diff
-+ template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
-+ [ -z "$template" ] && return
-  while true; do
-    ...
--   template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
--   [ -z "$template" ] && continue
-```
-<details>
-<summary>full version</summary>
-
-```bash
-chp() {
-  while true; do
-    selection=$(chathist list | fzf --multi \
-      --delimiter=$'\t' \
-      --with-nth=2.. \
-      --preview 'chathist pick {1} --stdout' \
-      --preview-window 'right:45%:wrap' | cut -f1)
-
-    [ -z "$selection" ] && break
-
-    echo "$selection" | chathist pick
-  done
-}
-```
-
-</details>
-
-Skip template selection
-```diff
--   template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
--   [ -z "$template" ] && continue
--   echo "$selection" | chathist pick -t "$template"
-+   echo "$selection" | chathist pick
-```
-
-<details>
-<summary>full version</summary>
-
-```bash
-chp() {
-  template=$(chathist pick --list-templates | fzf --prompt="Select template: ")
-  [ -z "$template" ] && return
-
-  while true; do
-    selection=$(chathist list | fzf --multi \
-      --delimiter=$'\t' \
-      --with-nth=2.. \
-      --preview "chathist pick -t $template {1} --stdout" \
-      --preview-window 'right:45%:wrap' | cut -f1)
-
-    [ -z "$selection" ] && break
-
-    echo "$selection" | chathist pick -t "$template"
-  done
-}
-```
-
-</details>
-
-Alternatively, you can set up a keybinding to invoke chathist directly with `Ctrl+H`.
+| Action | Description |
+|--------|-------------|
+| `resume` | Resume the session in Claude Code (`claude --resume`) |
+| `open` | Open in editor with a template |
 
 ```bash
 function chathist-widget() {
-  while true; do
-    local selection=$(chathist list | fzf-tmux --multi \
-      --delimiter=$'\t' \
-      --with-nth=2.. \
-      --preview 'chathist pick {1} --stdout' \
-      --preview-window 'right:45%:wrap' | cut -f1)
+  local selection=$(chathist list | fzf-tmux --multi \
+    --delimiter=$'\t' \
+    --with-nth=2.. \
+    --header 'ctrl-s: cross-worktree / ctrl-d: current project' \
+    --preview 'chathist pick {1} --stdout' \
+    --preview-window 'right:45%:wrap' \
+    --bind 'ctrl-s:reload(chathist list -w)+change-preview(chathist pick -w {1} --stdout)+change-header(cross-worktree | ctrl-d: current project)' \
+    --bind 'ctrl-d:reload(chathist list)+change-preview(chathist pick {1} --stdout)+change-header(current project | ctrl-s: cross-worktree)' \
+    | cut -f1)
 
-    [ -z "$selection" ] && break
+  [ -z "$selection" ] && { zle reset-prompt; return; }
 
-    local template=$(chathist pick --list-templates | fzf-tmux --prompt="Select template: ")
-    [ -z "$template" ] && continue
+  local action=$(printf 'resume\nopen' | fzf-tmux --prompt="Action: ")
+  [ -z "$action" ] && { zle reset-prompt; return; }
 
-    echo "$selection" | chathist pick -t "$template"
-  done
+  case "$action" in
+    resume)
+      local session_id=$(echo "$selection" | head -1)
+      chathist insert -w "$session_id" 2>/dev/null
+      BUFFER="claude --resume $session_id"
+      zle accept-line
+      return
+      ;;
+    open)
+      local template=$(chathist pick --list-templates | fzf-tmux --prompt="Template: ")
+      [ -z "$template" ] && { zle reset-prompt; return; }
+      echo "$selection" | chathist pick -w -t "$template"
+      ;;
+  esac
 
   zle reset-prompt
 }
@@ -144,22 +89,13 @@ bindkey "^h" chathist-widget
 ### Core Commands
 
 * `chathist list`: List all chat sessions.
+* `chathist list -w`: List sessions across all worktrees of the same repository.
 * `chathist pick <session_id>`: Opens the specified session in the editor.
 * `chathist pick --stdout <session_id>`: Dump content to terminal (ideal for `fzf` previews).
 * `chathist pick --template <name> <session_id>`: Use a predefined template.
 * `chathist pick --list-templates`: List available template names (for fzf integration).
-
-#### Example: Copy to Clipboard
-
-```bash
-# Select a session via fzf and copy to clipboard using the github format.
-chathist list | fzf --multi \
-  --delimiter=$'\t' \
-  --with-nth=2.. \
-  --preview 'chathist pick -t standard {1} --stdout' \
-  --preview-window 'right:45%:wrap' \
-  | cut -f1 | chathist pick -t github --stdout | pbcopy
-```
+* `chathist pick -w <session_id>`: Pick from any worktree of the same repository.
+* `chathist insert -w <session_id>`: Copy a session from another worktree into the current project's log directory (enables `claude --resume`).
 
 ## Configuration
 

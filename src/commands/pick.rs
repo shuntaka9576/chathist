@@ -26,6 +26,7 @@ pub fn run_pick(
     session_id_arg: Option<String>,
     stdout: bool,
     template_name: Option<String>,
+    cross_worktree: bool,
     config: &Config,
 ) {
     // Resolve template
@@ -67,12 +68,22 @@ pub fn run_pick(
         return;
     }
 
-    let Some(log_dir) = agent.get_log_dir() else {
-        eprintln!("No log directory found for current project.");
-        return;
+    let log_dirs = if cross_worktree {
+        let dirs = agent.get_cross_worktree_log_dirs();
+        if dirs.is_empty() {
+            eprintln!("No log directories found for current project (cross-worktree).");
+            return;
+        }
+        dirs
+    } else {
+        let Some(log_dir) = agent.get_log_dir() else {
+            eprintln!("No log directory found for current project.");
+            return;
+        };
+        vec![log_dir]
     };
 
-    let result = agent.pick(&session_ids, &log_dir, &template);
+    let result = agent.pick(&session_ids, &log_dirs, &template);
 
     if stdout {
         print!("{}", result.output);

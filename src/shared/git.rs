@@ -1,4 +1,45 @@
 use std::path::PathBuf;
+use std::process::Command;
+
+/// Find the main worktree root using `git worktree list --porcelain`.
+/// For bare repo setups (e.g. `.bare` directory), returns the parent directory.
+/// This returns the base repository path even when called from a linked worktree.
+pub fn find_main_worktree_root() -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let mut is_bare = false;
+    let mut main_path: Option<PathBuf> = None;
+
+    for line in stdout.lines() {
+        if let Some(path) = line.strip_prefix("worktree ") {
+            if main_path.is_none() {
+                main_path = Some(PathBuf::from(path));
+            }
+        }
+        if main_path.is_some() && !is_bare && line == "bare" {
+            is_bare = true;
+        }
+        // Stop after parsing the first worktree block
+        if main_path.is_some() && line.is_empty() {
+            break;
+        }
+    }
+
+    let path = main_path?;
+    if is_bare {
+        // For bare repos (e.g. /repo/.bare), use the parent directory as the base
+        path.parent().map(|p| p.to_path_buf())
+    } else {
+        Some(path)
+    }
+}
 
 /// Find the root directory of the Git repository by traversing parent directories
 /// from the current directory.
