@@ -7,16 +7,25 @@ use crate::agent::claude::parser::{extract_text_content, is_system_message, LogE
 use crate::agent::PickResult;
 use crate::config::templates::{render_pick, MessageContext, SessionContext};
 
-pub fn pick(session_ids: &[String], log_dir: &str, template: &str) -> PickResult {
+fn find_session_file(session_id: &str, log_dirs: &[String]) -> Option<std::path::PathBuf> {
+    for log_dir in log_dirs {
+        let path = Path::new(log_dir).join(format!("{session_id}.jsonl"));
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    None
+}
+
+pub fn pick(session_ids: &[String], log_dirs: &[String], template: &str) -> PickResult {
     let mut sessions: Vec<SessionContext> = Vec::new();
     let plans_dir = get_plans_dir();
 
     for session_id in session_ids {
-        let session_file = Path::new(log_dir).join(format!("{session_id}.jsonl"));
-        if !session_file.exists() {
-            eprintln!("Session file not found: {}", session_file.display());
+        let Some(session_file) = find_session_file(session_id, log_dirs) else {
+            eprintln!("Session file not found in any log directory: {session_id}");
             continue;
-        }
+        };
 
         let Ok(file) = File::open(&session_file) else {
             eprintln!("Failed to open session file: {session_id}");

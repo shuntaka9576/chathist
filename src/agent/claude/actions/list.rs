@@ -6,7 +6,16 @@ use crate::agent::claude::parser::{
 };
 use crate::agent::DisplayEntry;
 
-pub fn list(log_dir: &str) -> Vec<DisplayEntry> {
+pub fn list(log_dirs: &[String]) -> Vec<DisplayEntry> {
+    let mut all_entries: Vec<DisplayEntry> = Vec::new();
+    for log_dir in log_dirs {
+        all_entries.extend(list_single(log_dir));
+    }
+    all_entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    all_entries
+}
+
+fn list_single(log_dir: &str) -> Vec<DisplayEntry> {
     // Phase 1: Collect all summaries (leafUuid -> summary)
     // Skip agent-* files to avoid incorrect summary linking
     let mut leaf_to_summary: HashMap<String, String> = HashMap::new();
