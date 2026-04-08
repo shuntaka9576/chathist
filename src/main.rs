@@ -119,7 +119,14 @@ fn main() {
                 commands::run_list_templates(&app_config);
             } else {
                 let agent = ClaudeAgent::new();
-                commands::run_pick(&agent, session_id, stdout, template, cross_worktree, &app_config);
+                commands::run_pick(
+                    &agent,
+                    session_id,
+                    stdout,
+                    template,
+                    cross_worktree,
+                    &app_config,
+                );
             }
         }
         Commands::Insert {
