@@ -40,7 +40,7 @@ brews:
   - repository:
       owner: shuntaka9576
       name: homebrew-tap
-      token: "{{ .Env.GH_PAT }}"
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
