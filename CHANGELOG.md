@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.0](https://github.com/shuntaka9576/chathist/compare/v0.3.0...v0.4.0) - 2026-04-08
+- feat: rename templates with usage-based names and add slack template by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/7
+- feat: add cross-worktree search and insert command by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/9
+
 ## [v0.3.0](https://github.com/shuntaka9576/chathist/compare/v0.2.0...v0.3.0) - 2026-03-03
 - feat: add hidden search text column to list output for fzf body search by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/5
 
