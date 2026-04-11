@@ -35,8 +35,11 @@ enum Commands {
     /// List conversations
     List {
         /// Search across all worktrees of the same repository
-        #[arg(long = "cross-worktree", short = 'w')]
+        #[arg(long = "cross-worktree", short = 'w', conflicts_with = "all")]
         cross_worktree: bool,
+        /// Search across all repositories
+        #[arg(long, short = 'a')]
+        all: bool,
     },
     /// Pick and display conversation history
     Pick {
@@ -52,16 +55,22 @@ enum Commands {
         #[arg(long)]
         list_templates: bool,
         /// Search across all worktrees of the same repository
-        #[arg(long = "cross-worktree", short = 'w')]
+        #[arg(long = "cross-worktree", short = 'w', conflicts_with = "all")]
         cross_worktree: bool,
+        /// Search across all repositories
+        #[arg(long, short = 'a')]
+        all: bool,
     },
     /// Insert a session from another worktree into current project's log directory
     Insert {
         /// Session ID to insert
         session_id: String,
         /// Search across all worktrees of the same repository
-        #[arg(long = "cross-worktree", short = 'w')]
+        #[arg(long = "cross-worktree", short = 'w', conflicts_with = "all")]
         cross_worktree: bool,
+        /// Search across all repositories
+        #[arg(long, short = 'a')]
+        all: bool,
     },
     /// Open config file in editor
     Config,
@@ -90,10 +99,13 @@ fn main() {
     };
 
     match command {
-        Commands::List { cross_worktree } => {
+        Commands::List {
+            cross_worktree,
+            all,
+        } => {
             let agent = ClaudeAgent::new();
 
-            let log_dirs = resolve_log_dirs(&agent, cross_worktree);
+            let log_dirs = resolve_log_dirs(&agent, cross_worktree, all);
             let Some(log_dirs) = log_dirs else {
                 return;
             };
@@ -114,6 +126,7 @@ fn main() {
             template,
             list_templates,
             cross_worktree,
+            all,
         } => {
             if list_templates {
                 commands::run_list_templates(&app_config);
@@ -125,6 +138,7 @@ fn main() {
                     stdout,
                     template,
                     cross_worktree,
+                    all,
                     &app_config,
                 );
             }
@@ -132,9 +146,10 @@ fn main() {
         Commands::Insert {
             session_id,
             cross_worktree,
+            all,
         } => {
             let agent = ClaudeAgent::new();
-            commands::run_insert(&agent, &session_id, cross_worktree);
+            commands::run_insert(&agent, &session_id, cross_worktree, all);
         }
         Commands::Config => {
             commands::run_config(&app_config);
@@ -142,8 +157,15 @@ fn main() {
     }
 }
 
-fn resolve_log_dirs(agent: &impl Agent, cross_worktree: bool) -> Option<Vec<String>> {
-    if cross_worktree {
+fn resolve_log_dirs(agent: &impl Agent, cross_worktree: bool, all: bool) -> Option<Vec<String>> {
+    if all {
+        let dirs = agent.get_all_log_dirs();
+        if dirs.is_empty() {
+            eprintln!("No log directories found.");
+            return None;
+        }
+        Some(dirs)
+    } else if cross_worktree {
         let dirs = agent.get_cross_worktree_log_dirs();
         if dirs.is_empty() {
             eprintln!("No log directories found for current project (cross-worktree).");

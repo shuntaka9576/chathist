@@ -55,6 +55,23 @@ pub fn get_cross_worktree_log_dirs() -> Vec<String> {
         .collect()
 }
 
+/// Get all log directories from all projects.
+/// This finds logs from all repositories, not just the current one.
+pub fn get_all_log_dirs() -> Vec<String> {
+    let config_dir = get_claude_config_dir();
+    let projects_dir = format!("{config_dir}/projects");
+
+    let Ok(entries) = std::fs::read_dir(&projects_dir) else {
+        return vec![];
+    };
+
+    entries
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().to_string_lossy().to_string())
+        .collect()
+}
+
 /// Get log directory, creating it if it doesn't exist.
 /// Used by the insert command to ensure the destination directory exists.
 pub fn get_or_create_log_dir() -> Option<String> {

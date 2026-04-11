@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::agent::Agent;
 
-pub fn run_insert(agent: &impl Agent, session_id: &str, cross_worktree: bool) {
+pub fn run_insert(agent: &impl Agent, session_id: &str, cross_worktree: bool, all: bool) {
     let Some(current_log_dir) = agent.get_or_create_log_dir() else {
         eprintln!("Failed to determine log directory for current project.");
         return;
@@ -15,7 +15,9 @@ pub fn run_insert(agent: &impl Agent, session_id: &str, cross_worktree: bool) {
         return;
     }
 
-    let log_dirs = if cross_worktree {
+    let log_dirs = if all {
+        agent.get_all_log_dirs()
+    } else if cross_worktree {
         agent.get_cross_worktree_log_dirs()
     } else {
         agent.get_log_dir().into_iter().collect()
