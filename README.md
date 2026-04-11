@@ -38,6 +38,7 @@ Add this to your `.zshrc` to get a unified session picker on `Ctrl+H`.
 | `Tab` | Multi-select sessions |
 | `Shift+Up/Down` | Scroll preview |
 | `Ctrl+S` | Switch to cross-worktree mode |
+| `Ctrl+A` | Switch to all repositories mode |
 | `Ctrl+D` | Switch back to current project |
 
 After selecting sessions, you choose an action.
@@ -52,11 +53,12 @@ function chathist-widget() {
   local selection=$(chathist list | fzf-tmux --multi \
     --delimiter=$'\t' \
     --with-nth=2.. \
-    --header 'ctrl-s: cross-worktree / ctrl-d: current project' \
+    --header 'ctrl-s: cross-worktree / ctrl-a: all repos / ctrl-d: current project' \
     --preview 'chathist pick {1} --stdout' \
     --preview-window 'right:45%:wrap' \
-    --bind 'ctrl-s:reload(chathist list -w)+change-preview(chathist pick -w {1} --stdout)+change-header(cross-worktree | ctrl-d: current project)' \
-    --bind 'ctrl-d:reload(chathist list)+change-preview(chathist pick {1} --stdout)+change-header(current project | ctrl-s: cross-worktree)' \
+    --bind 'ctrl-s:reload(chathist list -w)+change-preview(chathist pick -w {1} --stdout)+change-header(cross-worktree | ctrl-a: all repos | ctrl-d: current project)' \
+    --bind 'ctrl-a:reload(chathist list --all)+change-preview(chathist pick --all {1} --stdout)+change-header(all repos | ctrl-s: cross-worktree | ctrl-d: current project)' \
+    --bind 'ctrl-d:reload(chathist list)+change-preview(chathist pick {1} --stdout)+change-header(current project | ctrl-s: cross-worktree | ctrl-a: all repos)' \
     | cut -f1)
 
   [ -z "$selection" ] && { zle reset-prompt; return; }
@@ -67,7 +69,7 @@ function chathist-widget() {
   case "$action" in
     resume)
       local session_id=$(echo "$selection" | head -1)
-      chathist insert -w "$session_id" 2>/dev/null
+      chathist insert --all "$session_id" 2>/dev/null
       BUFFER="claude --resume $session_id"
       zle accept-line
       return
@@ -90,12 +92,15 @@ bindkey "^h" chathist-widget
 
 * `chathist list`: List all chat sessions.
 * `chathist list -w`: List sessions across all worktrees of the same repository.
+* `chathist list --all`: List sessions across all repositories.
 * `chathist pick <session_id>`: Opens the specified session in the editor.
 * `chathist pick --stdout <session_id>`: Dump content to terminal (ideal for `fzf` previews).
 * `chathist pick --template <name> <session_id>`: Use a predefined template.
 * `chathist pick --list-templates`: List available template names (for fzf integration).
 * `chathist pick -w <session_id>`: Pick from any worktree of the same repository.
+* `chathist pick --all <session_id>`: Pick from any repository.
 * `chathist insert -w <session_id>`: Copy a session from another worktree into the current project's log directory (enables `claude --resume`).
+* `chathist insert --all <session_id>`: Copy a session from any repository into the current project's log directory.
 
 ## Configuration
 

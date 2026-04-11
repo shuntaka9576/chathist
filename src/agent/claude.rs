@@ -32,6 +32,10 @@ impl Agent for ClaudeAgent {
         config::get_cross_worktree_log_dirs()
     }
 
+    fn get_all_log_dirs(&self) -> Vec<String> {
+        config::get_all_log_dirs()
+    }
+
     fn list(&self, log_dirs: &[String], _config: &Config) -> Vec<DisplayEntry> {
         actions::list::list(log_dirs)
     }
