@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.0](https://github.com/shuntaka9576/chathist/compare/v0.5.0...v0.6.0) - 2026-04-11
+- feat: add --all flag for cross-repository session search by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/15
+
 ## [v0.5.0](https://github.com/shuntaka9576/chathist/compare/v0.3.0...v0.5.0) - 2026-04-09
 - feat: rename templates with usage-based names and add slack template by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/7
 - feat: add cross-worktree search and insert command by @shuntaka9576 in https://github.com/shuntaka9576/chathist/pull/9
